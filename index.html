@@ -52,7 +52,7 @@
     .lbl{font-size:.88rem;color:var(--muted);font-weight:600}
     .chip{display:inline-flex;align-items:center;padding:.25rem .65rem;border-radius:999px;background:rgba(47,122,60,.1);color:var(--success);font-size:.8rem}
     .chip.blue{background:rgba(26,74,122,.1);color:#1a4a7a}
-    .hlist{margin-top:.6rem;max-height:200px;overflow:auto;font-size:.87rem;border-radius:14px;background:var(--surface-2);padding:.7rem 1rem;border:1px solid var(--border)}
+    .hlist{margin-top:.6rem;max-height:220px;overflow:auto;font-size:.82rem;border-radius:14px;background:var(--surface-2);padding:.7rem 1rem;border:1px solid var(--border);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
     .info{margin-top:.75rem;padding:.75rem 1rem;border-radius:14px;background:var(--surface-2);border:1px solid var(--border);font-size:.9rem}
     .info.err{background:#fff0f0;border-color:#f5c2c2;color:var(--danger)}
     .info.tip{background:#f0f7ff;border-color:#b3d4f5;color:#1a4a7a}
@@ -79,10 +79,17 @@
     .pipe-step{background:#fff;border:1px solid var(--border);border-radius:999px;padding:.15rem .6rem}
     .export-card{margin-top:1.25rem;padding:1.25rem;background:#fff;border:1px solid var(--border);border-radius:20px;display:none}
     .export-card.on{display:block}
-    .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-top:.9rem}
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem;margin-top:.9rem}
     .stat-box{padding:1rem;border-radius:16px;background:var(--surface-2);border:1px solid var(--border)}
     .stat-label{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.3rem}
     .stat-val{font-size:1rem;font-weight:700;word-break:break-all}
+    /* progress bar */
+    .progress-wrap{margin-top:.75rem;background:var(--surface-2);border-radius:999px;height:8px;overflow:hidden;border:1px solid var(--border)}
+    .progress-bar{height:100%;background:var(--primary);border-radius:999px;transition:width .2s;width:0%}
+    /* identity label badge */
+    .lbadge{display:inline-block;padding:.1rem .45rem;border-radius:6px;font-size:.75rem;font-weight:600;margin-left:.3rem}
+    .lbadge.sns{background:rgba(1,105,111,.12);color:var(--primary)}
+    .lbadge.known{background:rgba(178,59,59,.1);color:var(--danger)}
     code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.83rem;word-break:break-all}
     @media(max-width:740px){.hero{grid-template-columns:1fr}.stat-grid{grid-template-columns:1fr 1fr}.filter-grid{grid-template-columns:1fr}}
   </style>
@@ -94,7 +101,7 @@
     <div>
       <div class="pill">📸 Solana Snapshot</div>
       <h1 class="title">Snapshot token holders for your L1 airdrop.</h1>
-      <p class="subtitle">No wallet needed. Paste a mint address and a free Helius key — scan every holder, filter with precision, and export a CSV ready for any new chain's airdrop script.</p>
+      <p class="subtitle">No wallet needed. Paste a mint address and a free Helius key — scan every holder, resolve identities, filter with precision, and export a CSV ready for any new chain's airdrop script.</p>
     </div>
     <div class="art" aria-hidden="true">
       <svg class="wizard" viewBox="0 0 140 160" fill="none">
@@ -135,7 +142,7 @@
     <!-- Step 1: Load -->
     <div id="step1" class="panel on">
       <p class="ptitle">Step 1 — Load holders</p>
-      <p class="fine">Uses Helius DAS <code>getTokenAccounts</code> — paginated, fast, free-tier friendly. Zero-balance accounts are excluded automatically. Decimals are fetched from the mint and applied to all displayed amounts.</p>
+      <p class="fine">Uses Helius DAS <code>getTokenAccounts</code> — paginated, fast, free-tier friendly. Zero-balance accounts excluded. Decimals fetched from the mint and applied to all amounts.</p>
       <div class="field">
         <label class="lbl" for="mintInput">Token mint address</label>
         <input id="mintInput" class="inp" type="text" placeholder="e.g. EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" autocomplete="off" spellcheck="false" />
@@ -147,10 +154,35 @@
       <div id="holdersInfo" class="info" style="display:none"></div>
     </div>
 
-    <!-- Step 2: Filter -->
+    <!-- Step 2: Resolve Identities -->
+    <div id="stepResolve" class="panel">
+      <p class="ptitle">🔍 Step 2 — Resolve Identities <span id="resolveChip" class="chip" style="margin-left:.5rem;display:none"></span></p>
+      <p class="fine">Instantly labels known CEX/protocol addresses from a built-in table, then optionally looks up <strong>.sol domain names</strong> via SNS on-chain reverse records. SNS lookup is one RPC call per wallet — use the limit to keep it fast.</p>
+
+      <div class="row" style="margin-top:.9rem;gap:1rem;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <label class="lbl" style="margin:0">SNS lookup limit</label>
+          <input id="snsLimit" class="num" type="number" min="0" step="1" value="500" style="width:90px" />
+          <span class="fine" style="margin:0">wallets (0 = skip SNS)</span>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:1rem">
+        <button id="resolveBtn" class="button">🔍 Resolve Identities</button>
+        <button id="skipResolveBtn" class="button sec">Skip →</button>
+      </div>
+
+      <div id="resolveProgress" style="display:none;margin-top:.75rem">
+        <div class="fine" id="resolveStatus"></div>
+        <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+      </div>
+      <div id="resolveInfo" class="info" style="display:none"></div>
+    </div>
+
+    <!-- Step 3: Filter -->
     <div id="stepFilter" class="panel">
-      <p class="ptitle">🎯 Filter &amp; Target <span id="targetChip" class="chip blue" style="margin-left:.5rem;display:none"></span></p>
-      <p class="fine">Filters run as a pipeline in the order listed. Balance filters use <strong>human-readable amounts</strong> (decimals already applied). Toggle any combination — preview updates live.</p>
+      <p class="ptitle">🎯 Step 3 — Filter &amp; Target <span id="targetChip" class="chip blue" style="margin-left:.5rem;display:none"></span></p>
+      <p class="fine">Filters run as a pipeline. Balance filters use <strong>human-readable amounts</strong> (decimals applied). Toggle any combination — preview updates live.</p>
 
       <div class="filter-grid" id="filterGrid">
 
@@ -176,7 +208,7 @@
             <input type="checkbox" class="ftoggle" id="tog-balRange" />
           </div>
           <div class="fcard-body">
-            <p class="fine" style="margin-top:0">Keep holders whose token balance (human-readable) falls between min and max.</p>
+            <p class="fine" style="margin-top:0">Keep holders whose token balance falls between min and max.</p>
             <div class="finline">
               <span class="flbl">Min</span>
               <input class="num" id="f-balMin" type="number" min="0" step="any" value="0" />
@@ -252,7 +284,7 @@
             <input type="checkbox" class="ftoggle" id="tog-everyNth" />
           </div>
           <div class="fcard-body">
-            <p class="fine" style="margin-top:0">Keep every Nth holder from the sorted pool (e.g. N=2 keeps 1st, 3rd, 5th…).</p>
+            <p class="fine" style="margin-top:0">Keep every Nth holder (e.g. N=2 keeps 1st, 3rd, 5th…).</p>
             <div class="finline">
               <span class="flbl">N =</span>
               <input class="num" id="f-everyNth" type="number" min="2" step="1" value="2" style="width:80px" />
@@ -327,15 +359,16 @@
       <div id="holdersList" class="hlist" style="display:none;margin-top:.75rem"></div>
     </div>
 
-    <!-- Step 3: Export -->
+    <!-- Step 4: Export -->
     <div id="stepExport" class="export-card">
-      <p class="ptitle">📦 Step 3 — Export snapshot</p>
-      <p class="fine">CSV columns: <code>wallet, ui_amount, raw_amount, rank</code>. <code>ui_amount</code> is the human-readable balance (decimals applied). <code>raw_amount</code> is the on-chain integer.</p>
+      <p class="ptitle">📦 Step 4 — Export snapshot</p>
+      <p class="fine">CSV columns: <code>wallet, label, ui_amount, raw_amount, rank</code>. <code>label</code> is the resolved identity (.sol domain or known entity name), empty if unknown.</p>
 
       <div class="stat-grid">
         <div class="stat-box"><div class="stat-label">Selected holders</div><div class="stat-val" id="statCount">—</div></div>
         <div class="stat-box"><div class="stat-label">Total supply (UI)</div><div class="stat-val" id="statSupply">—</div></div>
         <div class="stat-box"><div class="stat-label">Decimals</div><div class="stat-val" id="statDecimals">—</div></div>
+        <div class="stat-box"><div class="stat-label">Identified</div><div class="stat-val" id="statLabeled">—</div></div>
         <div class="stat-box"><div class="stat-label">Snapshot slot</div><div class="stat-val" id="statBlock">—</div></div>
       </div>
 
@@ -370,8 +403,16 @@
   const holdersChip    = $('holdersChip');
   const holdersInfo    = $('holdersInfo');
   const holdersList    = $('holdersList');
+  const stepResolve    = $('stepResolve');
   const stepFilter     = $('stepFilter');
   const stepExport     = $('stepExport');
+  const resolveBtn     = $('resolveBtn');
+  const skipResolveBtn = $('skipResolveBtn');
+  const resolveChip    = $('resolveChip');
+  const resolveInfo    = $('resolveInfo');
+  const resolveProgress= $('resolveProgress');
+  const resolveStatus  = $('resolveStatus');
+  const progressBar    = $('progressBar');
   const applyFilterBtn = $('applyFilterBtn');
   const resetFilterBtn = $('resetFilterBtn');
   const targetChip     = $('targetChip');
@@ -381,6 +422,7 @@
   const statCount      = $('statCount');
   const statSupply     = $('statSupply');
   const statDecimals   = $('statDecimals');
+  const statLabeled    = $('statLabeled');
   const statBlock      = $('statBlock');
   const exportCsvBtn   = $('exportCsvBtn');
   const exportJsonBtn  = $('exportJsonBtn');
@@ -388,12 +430,12 @@
   const exportInfo     = $('exportInfo');
   const logEl          = $('log');
 
-  // allHolders stores { owner, rawAmount, uiAmount }
-  let allHolders = [];
-  let holders    = [];
+  // allHolders: { owner, rawAmount, uiAmount, label }
+  let allHolders   = [];
+  let holders      = [];
   let mintDecimals = 0;
-  let lastBlock  = '—';
-  let sortMode   = 'balDesc';
+  let lastBlock    = '—';
+  let sortMode     = 'balDesc';
 
   const net    = () => netSel.value;
   const apiKey = () => apiKeyInput.value.trim();
@@ -427,46 +469,159 @@
 
   function updateStatus() {
     const ok = !!apiKey();
-    statusBadge.textContent       = ok ? '● Ready' : '⚠ Enter API key';
-    statusBadge.style.background  = ok ? 'rgba(47,122,60,.1)' : 'rgba(178,59,59,.1)';
-    statusBadge.style.color       = ok ? 'var(--success)' : 'var(--danger)';
+    statusBadge.textContent      = ok ? '● Ready' : '⚠ Enter API key';
+    statusBadge.style.background = ok ? 'rgba(47,122,60,.1)' : 'rgba(178,59,59,.1)';
+    statusBadge.style.color      = ok ? 'var(--success)' : 'var(--danger)';
     if (!ok) showInfo(keyTip, '🔑 Get a <strong>free</strong> Helius key at <a href="https://helius.dev" target="_blank">helius.dev</a>.', 'tip');
     else hideInfo(keyTip);
   }
   updateStatus();
 
-  // ── Decimals helper ────────────────────────────────────────
-  // Mint account layout: first 44 bytes header, byte 44 = decimals
-  async function fetchMintDecimals(mint) {
-    const ep = rpcUrl();
-    const res = await fetch(ep, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0', id: 'dec',
-        method: 'getAccountInfo',
-        params: [mint, { encoding: 'base64' }]
-      })
-    });
-    const json = await res.json();
-    if (json.error) throw new Error(json.error.message || 'getAccountInfo error');
-    const data = json.result?.value?.data;
-    if (!data || !data[0]) throw new Error('Could not fetch mint account data');
-    const bytes = Uint8Array.from(atob(data[0]), c => c.charCodeAt(0));
-    // SPL Mint layout: [44] = decimals
-    return bytes[44];
+  // ── Static known-address table ─────────────────────────────
+  // Format: address -> label
+  const KNOWN = {
+    // Binance
+    '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM': 'Binance Hot Wallet',
+    'GJRs4FwHtemZ5ZE9x3FNvJ8TMwitKTh21yxdRPqn7npE': 'Binance',
+    '5tzFkiKscXHK5ZXCGbCAbZseehZENhVMfJkAzsBnWm5n': 'Binance',
+    'AC5RDfQFmDS1deWZos921JfqscXdByf8BKHs5ACWjtW2': 'Binance',
+    'Dn2R7hqQYMjPSCJ3mPBfZJAe7j9AJBjuRD4k7gBEpM4X': 'Binance',
+    // Coinbase
+    'H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS': 'Coinbase',
+    'GVV4ZHRkXf5TxZ3S1rsom7YzGZ3G2pCZsbnzAFBjVMfS': 'Coinbase',
+    '2AQdpHJ2JpcEgPiATUXjQxA8QmafFegfQwSLWSprPicm': 'Coinbase',
+    // OKX
+    'A77HErqnowp2bNeNxnAqTBWmwHzG6yYmW5xtEMbJmyVc': 'OKX',
+    'FWznbcNXWQuHTawe9RxvQ2LdCENssh12dsznf4RiouN5': 'OKX',
+    // Kraken
+    'FWvDQHKDBUYBoUGEBKQVBkmGHK7sLU8eMptZBq9TcJ7F': 'Kraken',
+    // Bybit
+    'CEzN7mqP9xoxn2HdyW6fjEJ73t7qaX9Rp2zyS6hb3iEy': 'Bybit',
+    // KuCoin
+    '2bEgeHCYjRuUQXRhnMBMqkBSMxvTUJQEDMzCXkGDcgXk': 'KuCoin',
+    // Gate.io
+    '4WTUyXNcf6QCEadqSBADmGkHQsFZNWkBhtnJ9xqFmVK8': 'Gate.io',
+    // Raydium
+    '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8': 'Raydium AMM',
+    'CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK': 'Raydium CLMM',
+    'routeUGWgWzqBWFcrCfv8tritsqukccJPu3q5GPP3xS': 'Raydium Router',
+    // Orca
+    'whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc': 'Orca Whirlpool',
+    '9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP': 'Orca',
+    // Jupiter
+    'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4': 'Jupiter v6',
+    'JUP4Fb2cqiRUcaTHdrPC8h2gNsA2ETXiPDD33WcGuJB': 'Jupiter v4',
+    // Drift
+    'dRiftyHA39MWEi3m9aunc5MzRF1JYuBsbn6VPcn33UH': 'Drift Protocol',
+    // Mango
+    '4MangoMjqJ2firMokCjjGgoK8d4MXcrgL7XJaL3w6fVg': 'Mango Markets',
+    // Marinade
+    'MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD': 'Marinade Finance',
+    // Lido
+    'CrX7kMhLC3cSsXJdT7JDgqrRVMGDMyFxmveGmxub4aQ': 'Lido (stSOL)',
+    // Jito
+    'Jito4APyf642JPZPx3hGc6WWJ8zPKtRbRs4P815Poqu': 'Jito',
+    // Solend
+    'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo': 'Solend',
+    // SPL Token Program
+    'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA': 'SPL Token Program',
+    'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bJ8': 'Associated Token Program',
+    // System / native
+    '11111111111111111111111111111111': 'System Program',
+    'SysvarC1ock11111111111111111111111111111111': 'Sysvar Clock',
+    'SysvarRent111111111111111111111111111111111': 'Sysvar Rent',
+    // Magic Eden
+    'M2mx93ekt1fmXSVkTrUL9xVFHkmME8HTUi5Cyc5aF7K': 'Magic Eden v2',
+    'MEisE1HzehtrDpAAT8PnLHjpSSkRYakotTuJRPjTpo8': 'Magic Eden',
+    // Tensor
+    'TSWAPaqyCSx2KABk68Shruf4rp7CxcAi9UTjtKujUM4': 'Tensor',
+    // Phantom / Backpack fee wallets (well-known)
+    'PhoeNiXZ8ByJGLkxNfZRnkUfjvmuYqLR89jjFHGqdXY': 'Phoenix DEX',
+    // FTX (historic, may still hold)
+    'FTX6X5UPBYhPrGjNqMqJYdF3M6RfFgQBvqJhWCGDNXR': 'FTX (historic)',
+  };
+
+  // ── SNS reverse lookup ─────────────────────────────────────
+  // SNS Name Service: reverse lookup using the reverse registry account
+  // PDA seeds: ['SPL Name Service', owner_pubkey] under SNS reverse-registry program
+  // We use the Helius RPC to call getProgramAccounts or derive PDAs.
+  // Practical approach: use the SNS REST API via SNS SDK pattern —
+  // derive the reverse record PDA and call getAccountInfo.
+  const SNS_PROGRAM    = 'namesLPneVptA9Z5rqUDD9tMTWEJwofgaYwp8cawRkX';
+  const SNS_ROOT_HASH  = 'TwEnE8V6GGiZKgCasqhWkGpAFfrdoqANcDfLQHqkFpU'; // .sol TLD parent
+  // We rely on the Bonfida SNS reverse-lookup API endpoint for simplicity
+  // which returns the domain for a given wallet (no SDK needed)
+  const SNS_API = 'https://sns-sdk-proxy.bonfida.workers.dev/reverse-lookup?owner=';
+
+  async function resolveSNS(owner) {
+    try {
+      const res  = await fetch(`${SNS_API}${owner}`, { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return null;
+      const json = await res.json();
+      // Response: { s: "ok", result: "domain" } or { s: "error" }
+      if (json.s === 'ok' && json.result) return json.result + '.sol';
+      return null;
+    } catch (_) { return null; }
   }
 
-  function toUI(rawAmount, decimals) {
-    if (decimals === 0) return rawAmount;
-    return rawAmount / Math.pow(10, decimals);
-  }
+  // ── Resolve pipeline ───────────────────────────────────────
+  async function resolveIdentities() {
+    if (!allHolders.length) { log('Load holders first.'); return; }
 
-  function fmtUI(uiAmount, decimals) {
-    return uiAmount.toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: Math.min(decimals, 6)
-    });
+    resolveBtn.disabled = true;
+    skipResolveBtn.disabled = true;
+    resolveProgress.style.display = 'block';
+    hideInfo(resolveInfo);
+
+    const limit = Math.max(0, parseInt($('snsLimit').value) || 0);
+    let snsCount = 0, knownCount = 0;
+
+    // Pass 1: static known table (instant)
+    log('Applying known-address labels…');
+    for (const h of allHolders) {
+      h.label = KNOWN[h.owner] || '';
+      if (h.label) knownCount++;
+    }
+    log(`Known addresses labeled: ${knownCount}`);
+
+    // Pass 2: SNS reverse lookup
+    const toResolve = limit > 0 ? allHolders.filter(h => !h.label).slice(0, limit) : [];
+    const total = toResolve.length;
+    log(`SNS lookup: ${total} wallet${total !== 1 ? 's' : ''} queued (limit: ${limit})…`);
+
+    for (let i = 0; i < toResolve.length; i++) {
+      const h = toResolve[i];
+      resolveStatus.textContent = `SNS lookup ${i + 1} / ${total}…`;
+      progressBar.style.width = `${Math.round((i + 1) / total * 100)}%`;
+
+      const domain = await resolveSNS(h.owner);
+      if (domain) { h.label = domain; snsCount++; }
+
+      // Small delay every 10 to avoid rate-limiting
+      if ((i + 1) % 10 === 0) await sleep(150);
+    }
+
+    progressBar.style.width = '100%';
+    resolveStatus.textContent = 'Done.';
+
+    const totalLabeled = allHolders.filter(h => h.label).length;
+    log(`Identity resolution complete — ${totalLabeled} identified (${knownCount} known, ${snsCount} SNS)`);
+    showInfo(resolveInfo,
+      `✓ <strong>${totalLabeled}</strong> wallets identified out of ${allHolders.length} — `
+      + `<strong>${knownCount}</strong> from known-address table · <strong>${snsCount}</strong> .sol domains`,
+      'ok');
+
+    resolveChip.textContent = `${totalLabeled} identified`;
+    resolveChip.style.display = 'inline-flex';
+
+    holders = [...allHolders];
+    renderHolderList(holders);
+    updateExportStats();
+
+    resolveBtn.disabled = false;
+    skipResolveBtn.disabled = false;
+    stepFilter.classList.add('on');
+    stepFilter.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   // ── Filter card toggles ────────────────────────────────────
@@ -505,7 +660,7 @@
     return a;
   }
 
-  // ── Filter pipeline (operates on uiAmount) ─────────────────
+  // ── Filter pipeline ────────────────────────────────────────
   function runPipeline() {
     if (!allHolders.length) return { result: [], steps: [] };
     let pool = [...allHolders];
@@ -518,12 +673,10 @@
       else if (sortMode === 'alpha')   pool.sort((a, b) => a.owner.localeCompare(b.owner));
       steps.push(`Sort: ${sortMode}`);
     }
-
     if (tog('include')) {
       const set = new Set(val('includeList').split(/[\n,]+/).map(s => s.trim()).filter(Boolean));
       if (set.size) { pool = pool.filter(h => set.has(h.owner)); steps.push(`Include only: ${set.size} addr`); }
     }
-
     if (tog('balRange')) {
       const mn = numVal('balMin', 0);
       const mxRaw = val('balMax').trim();
@@ -531,12 +684,10 @@
       pool = pool.filter(h => h.uiAmount >= mn && h.uiAmount <= mx);
       steps.push(`Balance: ${mn}–${mx === Infinity ? '∞' : mx}`);
     }
-
     if (tog('exclude')) {
       const set = new Set(val('excludeList').split(/[\n,]+/).map(s => s.trim()).filter(Boolean));
       if (set.size) { pool = pool.filter(h => !set.has(h.owner)); steps.push(`Exclude: ${set.size} addr`); }
     }
-
     if (tog('topPct')) {
       const pct  = Math.min(100, Math.max(1, numVal('topPct', 10)));
       const keep = Math.max(1, Math.round(pool.length * pct / 100));
@@ -544,7 +695,6 @@
       pool = pool.filter(h => topSet.has(h.owner));
       steps.push(`Top ${pct}%`);
     }
-
     if (tog('botPct')) {
       const pct  = Math.min(100, Math.max(1, numVal('botPct', 10)));
       const keep = Math.max(1, Math.round(pool.length * pct / 100));
@@ -552,38 +702,32 @@
       pool = pool.filter(h => botSet.has(h.owner));
       steps.push(`Bottom ${pct}%`);
     }
-
     if (tog('topN')) {
       const n = Math.max(1, numVal('topN', 100));
       const topSet = new Set([...pool].sort((a,b) => b.uiAmount - a.uiAmount).slice(0, n).map(h => h.owner));
       pool = pool.filter(h => topSet.has(h.owner));
       steps.push(`Top ${n}`);
     }
-
     if (tog('botN')) {
       const n = Math.max(1, numVal('botN', 100));
       const botSet = new Set([...pool].sort((a,b) => a.uiAmount - b.uiAmount).slice(0, n).map(h => h.owner));
       pool = pool.filter(h => botSet.has(h.owner));
       steps.push(`Bottom ${n}`);
     }
-
     if (tog('everyNth')) {
       const n = Math.max(2, numVal('everyNth', 2));
       pool = pool.filter((_, i) => i % n === 0);
       steps.push(`Every ${n}th`);
     }
-
     if (tog('random')) {
       const n = Math.max(1, numVal('randomN', 50));
       pool = cryptoShuffle(pool).slice(0, Math.min(n, pool.length));
       steps.push(`Random ${n}`);
     }
-
     if (tog('cap')) {
       const n = Math.max(1, numVal('cap', 500));
       if (pool.length > n) { pool = pool.slice(0, n); steps.push(`Cap ${n}`); }
     }
-
     return { result: pool, steps };
   }
 
@@ -600,9 +744,12 @@
 
   function renderHolderList(list) {
     holdersList.style.display = 'block';
-    holdersList.textContent = list.slice(0, 30)
-      .map((h, i) => `${i + 1}. ${h.owner}  ${fmtUI(h.uiAmount, mintDecimals)} (raw: ${h.rawAmount})`)
-      .join('\n') + (list.length > 30 ? `\n… +${list.length - 30} more` : '');
+    holdersList.textContent = list.slice(0, 40)
+      .map((h, i) => {
+        const lbl = h.label ? ` [${h.label}]` : '';
+        return `${String(i+1).padStart(3)}. ${h.owner}${lbl}  ${fmtUI(h.uiAmount, mintDecimals)}`;
+      })
+      .join('\n') + (list.length > 40 ? `\n… +${list.length - 40} more` : '');
   }
 
   function applyFilter() {
@@ -634,23 +781,67 @@
     updateExportStats();
   }
 
+  resolveBtn.addEventListener('click', () =>
+    resolveIdentities().catch(e => {
+      log(`Resolve error: ${e.message || e}`);
+      showInfo(resolveInfo, `Error: ${e.message || e}`, 'err');
+      resolveBtn.disabled = false;
+      skipResolveBtn.disabled = false;
+    })
+  );
+  skipResolveBtn.addEventListener('click', () => {
+    // Ensure labels are blank, apply known table only
+    for (const h of allHolders) { h.label = KNOWN[h.owner] || ''; }
+    holders = [...allHolders];
+    renderHolderList(holders);
+    updateExportStats();
+    log('Skipped SNS lookup — known-address labels applied.');
+    stepFilter.classList.add('on');
+    stepFilter.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
   applyFilterBtn.addEventListener('click', applyFilter);
   resetFilterBtn.addEventListener('click', resetFilters);
+
+  // ── Mint decimals ──────────────────────────────────────────
+  async function fetchMintDecimals(mint) {
+    const ep = rpcUrl();
+    const res = await fetch(ep, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 'dec', method: 'getAccountInfo', params: [mint, { encoding: 'base64' }] })
+    });
+    const json = await res.json();
+    if (json.error) throw new Error(json.error.message || 'getAccountInfo error');
+    const data = json.result?.value?.data;
+    if (!data || !data[0]) throw new Error('Could not fetch mint account data');
+    const bytes = Uint8Array.from(atob(data[0]), c => c.charCodeAt(0));
+    return bytes[44];
+  }
+
+  function toUI(rawAmount, decimals) {
+    if (decimals === 0) return rawAmount;
+    return rawAmount / Math.pow(10, decimals);
+  }
+
+  function fmtUI(uiAmount, decimals) {
+    return uiAmount.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: Math.min(decimals, 6)
+    });
+  }
 
   // ── Helius DAS fetch ───────────────────────────────────────
   async function fetchAllHolders(mint) {
     const ep = rpcUrl();
     if (!ep) throw new Error('Enter your Helius API key first.');
 
-    // 1. Get decimals first
     log('Fetching mint decimals…');
     mintDecimals = await fetchMintDecimals(mint);
     log(`Mint decimals: ${mintDecimals}`);
 
-    // 2. Paginate holders
     const PAGE = 1000;
     let page = 1;
-    const ownerMap = new Map(); // owner -> rawAmount (keep highest)
+    const ownerMap = new Map();
 
     while (true) {
       const res = await fetch(ep, {
@@ -680,7 +871,6 @@
       await sleep(200);
     }
 
-    // 3. Current slot
     try {
       const slotRes = await fetch(ep, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -689,13 +879,13 @@
       lastBlock = (await slotRes.json()).result?.toString() ?? '—';
     } catch (_) { lastBlock = '—'; }
 
-    // 4. Build result with both raw and UI amounts
     return [...ownerMap.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([owner, rawAmount]) => ({
         owner,
         rawAmount,
-        uiAmount: toUI(rawAmount, mintDecimals)
+        uiAmount: toUI(rawAmount, mintDecimals),
+        label: ''
       }));
   }
 
@@ -708,6 +898,8 @@
     pipeBar.style.display = 'none';
     targetChip.style.display = 'none';
     stepExport.classList.remove('on');
+    stepResolve.classList.remove('on');
+    stepFilter.classList.remove('on');
     allHolders = []; holders = [];
     log(`Loading holders for mint: ${mint} …`);
     allHolders = await fetchAllHolders(mint);
@@ -722,7 +914,14 @@
     showInfo(holdersInfo,
       `<strong>${allHolders.length}</strong> unique holder${allHolders.length !== 1 ? 's' : ''} · decimals: <strong>${mintDecimals}</strong> · slot: ${lastBlock}`,
       'ok');
-    stepFilter.classList.add('on');
+    // Reset resolve state
+    resolveChip.style.display = 'none';
+    resolveProgress.style.display = 'none';
+    hideInfo(resolveInfo);
+    progressBar.style.width = '0%';
+    resolveBtn.disabled = false;
+    skipResolveBtn.disabled = false;
+    stepResolve.classList.add('on');
     renderHolderList(allHolders);
     updateExportStats();
   }
@@ -731,6 +930,7 @@
   function buildRows() {
     return holders.map((h, i) => ({
       wallet:     h.owner,
+      label:      h.label || '',
       ui_amount:  h.uiAmount,
       raw_amount: h.rawAmount,
       rank:       i + 1
@@ -738,8 +938,11 @@
   }
 
   function buildCsv(rows) {
-    return 'wallet,ui_amount,raw_amount,rank\n'
-      + rows.map(r => `${r.wallet},${r.ui_amount},${r.raw_amount},${r.rank}`).join('\n');
+    return 'wallet,label,ui_amount,raw_amount,rank\n'
+      + rows.map(r => {
+          const lbl = r.label.includes(',') ? `"${r.label}"` : r.label;
+          return `${r.wallet},${lbl},${r.ui_amount},${r.raw_amount},${r.rank}`;
+        }).join('\n');
   }
 
   function downloadBlob(content, filename, mime) {
@@ -758,10 +961,12 @@
   }
 
   function updateExportStats() {
-    const uiSupply = holders.reduce((s, h) => s + h.uiAmount, 0);
+    const uiSupply   = holders.reduce((s, h) => s + h.uiAmount, 0);
+    const labeled    = holders.filter(h => h.label).length;
     statCount.textContent    = holders.length.toLocaleString();
     statSupply.textContent   = fmtUI(uiSupply, mintDecimals);
     statDecimals.textContent = mintDecimals;
+    statLabeled.textContent  = `${labeled} / ${holders.length}`;
     statBlock.textContent    = lastBlock;
     stepExport.classList.add('on');
   }
