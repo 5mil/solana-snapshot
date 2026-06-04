@@ -58,7 +58,6 @@
     .info.tip{background:#f0f7ff;border-color:#b3d4f5;color:#1a4a7a}
     .info.warn{background:#fffbea;border-color:#f0d080;color:#7a5800}
     .info.ok{background:#f0fff4;border-color:#b3e8c2;color:var(--success)}
-    /* filter grid */
     .filter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.85rem;margin-top:.9rem}
     .fcard{background:var(--surface-2);border:1px solid var(--border);border-radius:16px;padding:1rem}
     .fcard.active{border-color:var(--primary);background:rgba(1,105,111,.04)}
@@ -78,21 +77,19 @@
     .pipe-bar{margin-top:1rem;padding:.75rem 1rem;border-radius:14px;background:rgba(1,105,111,.07);border:1px solid rgba(1,105,111,.18);font-size:.9rem;color:var(--primary);display:none}
     .pipe-steps{display:flex;flex-wrap:wrap;gap:.3rem .5rem;margin-top:.35rem;font-size:.82rem;color:var(--muted)}
     .pipe-step{background:#fff;border:1px solid var(--border);border-radius:999px;padding:.15rem .6rem}
-    /* export card */
     .export-card{margin-top:1.25rem;padding:1.25rem;background:#fff;border:1px solid var(--border);border-radius:20px;display:none}
     .export-card.on{display:block}
-    .stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:.9rem}
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-top:.9rem}
     .stat-box{padding:1rem;border-radius:16px;background:var(--surface-2);border:1px solid var(--border)}
     .stat-label{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.3rem}
     .stat-val{font-size:1rem;font-weight:700;word-break:break-all}
     code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.83rem;word-break:break-all}
-    @media(max-width:740px){.hero{grid-template-columns:1fr}.stat-grid{grid-template-columns:1fr}.filter-grid{grid-template-columns:1fr}}
+    @media(max-width:740px){.hero{grid-template-columns:1fr}.stat-grid{grid-template-columns:1fr 1fr}.filter-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
 <main class="page">
 
-  <!-- Hero -->
   <section class="hero">
     <div>
       <div class="pill">📸 Solana Snapshot</div>
@@ -119,7 +116,6 @@
 
   <section class="card">
 
-    <!-- Config -->
     <div style="display:grid;gap:1rem">
       <div class="row">
         <select id="netSel" class="sel">
@@ -136,13 +132,13 @@
       <p class="hint">Enter your Helius key, then paste any SPL token mint to begin the snapshot.</p>
     </div>
 
-    <!-- Step 1: Load Holders -->
+    <!-- Step 1: Load -->
     <div id="step1" class="panel on">
       <p class="ptitle">Step 1 — Load holders</p>
-      <p class="fine">Uses Helius DAS <code>getTokenAccounts</code> — paginated, fast, free-tier friendly. Wallets with zero balance are excluded automatically.</p>
+      <p class="fine">Uses Helius DAS <code>getTokenAccounts</code> — paginated, fast, free-tier friendly. Zero-balance accounts are excluded automatically. Decimals are fetched from the mint and applied to all displayed amounts.</p>
       <div class="field">
         <label class="lbl" for="mintInput">Token mint address</label>
-        <input id="mintInput" class="inp" type="text" placeholder="e.g. So11111111111111111111111111111111111111112" autocomplete="off" spellcheck="false" />
+        <input id="mintInput" class="inp" type="text" placeholder="e.g. EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" autocomplete="off" spellcheck="false" />
       </div>
       <div class="row" style="margin-top:1rem">
         <button id="loadBtn" class="button">📥 Load Holders</button>
@@ -154,11 +150,10 @@
     <!-- Step 2: Filter -->
     <div id="stepFilter" class="panel">
       <p class="ptitle">🎯 Filter &amp; Target <span id="targetChip" class="chip blue" style="margin-left:.5rem;display:none"></span></p>
-      <p class="fine">Filters run as a pipeline in the order listed. Toggle any combination — preview updates live.</p>
+      <p class="fine">Filters run as a pipeline in the order listed. Balance filters use <strong>human-readable amounts</strong> (decimals already applied). Toggle any combination — preview updates live.</p>
 
       <div class="filter-grid" id="filterGrid">
 
-        <!-- Sort -->
         <div class="fcard" id="fc-sort">
           <div class="fcard-head">
             <span class="fcard-title">🔽 Sort order</span>
@@ -175,24 +170,22 @@
           </div>
         </div>
 
-        <!-- Balance range -->
         <div class="fcard" id="fc-balRange">
           <div class="fcard-head">
             <span class="fcard-title">⚖️ Balance range</span>
             <input type="checkbox" class="ftoggle" id="tog-balRange" />
           </div>
           <div class="fcard-body">
-            <p class="fine" style="margin-top:0">Keep holders whose raw token balance falls between min and max.</p>
+            <p class="fine" style="margin-top:0">Keep holders whose token balance (human-readable) falls between min and max.</p>
             <div class="finline">
               <span class="flbl">Min</span>
-              <input class="num" id="f-balMin" type="number" min="0" step="1" value="1" />
+              <input class="num" id="f-balMin" type="number" min="0" step="any" value="0" />
               <span class="flbl">Max</span>
-              <input class="num" id="f-balMax" type="number" min="0" step="1" placeholder="∞" />
+              <input class="num" id="f-balMax" type="number" min="0" step="any" placeholder="∞" />
             </div>
           </div>
         </div>
 
-        <!-- Top % -->
         <div class="fcard" id="fc-topPct">
           <div class="fcard-head">
             <span class="fcard-title">📊 Top % by balance</span>
@@ -208,7 +201,6 @@
           </div>
         </div>
 
-        <!-- Bottom % -->
         <div class="fcard" id="fc-botPct">
           <div class="fcard-head">
             <span class="fcard-title">🐢 Bottom % by balance</span>
@@ -224,7 +216,6 @@
           </div>
         </div>
 
-        <!-- Top N -->
         <div class="fcard" id="fc-topN">
           <div class="fcard-head">
             <span class="fcard-title">👑 Top N by balance</span>
@@ -240,7 +231,6 @@
           </div>
         </div>
 
-        <!-- Bottom N -->
         <div class="fcard" id="fc-botN">
           <div class="fcard-head">
             <span class="fcard-title">🗝️ Bottom N by balance</span>
@@ -256,7 +246,6 @@
           </div>
         </div>
 
-        <!-- Every Nth -->
         <div class="fcard" id="fc-everyNth">
           <div class="fcard-head">
             <span class="fcard-title">🔁 Every Nth holder</span>
@@ -271,7 +260,6 @@
           </div>
         </div>
 
-        <!-- Random sample -->
         <div class="fcard" id="fc-random">
           <div class="fcard-head">
             <span class="fcard-title">🎲 Random sample</span>
@@ -287,7 +275,6 @@
           </div>
         </div>
 
-        <!-- Exclude list -->
         <div class="fcard" id="fc-exclude">
           <div class="fcard-head">
             <span class="fcard-title">❌ Exclude addresses</span>
@@ -299,7 +286,6 @@
           </div>
         </div>
 
-        <!-- Include only -->
         <div class="fcard" id="fc-include">
           <div class="fcard-head">
             <span class="fcard-title">✅ Include only</span>
@@ -311,7 +297,6 @@
           </div>
         </div>
 
-        <!-- Hard cap -->
         <div class="fcard" id="fc-cap">
           <div class="fcard-head">
             <span class="fcard-title">🛡️ Hard cap</span>
@@ -327,9 +312,8 @@
           </div>
         </div>
 
-      </div><!-- /filter-grid -->
+      </div>
 
-      <!-- Pipeline summary -->
       <div class="pipe-bar" id="pipeBar">
         <strong id="pipeCount"></strong>
         <div class="pipe-steps" id="pipeSteps"></div>
@@ -346,12 +330,13 @@
     <!-- Step 3: Export -->
     <div id="stepExport" class="export-card">
       <p class="ptitle">📦 Step 3 — Export snapshot</p>
-      <p class="fine">Download a CSV with <code>wallet,raw_amount,rank</code> columns — ready to feed into any L1 airdrop script or smart contract deployment.</p>
+      <p class="fine">CSV columns: <code>wallet, ui_amount, raw_amount, rank</code>. <code>ui_amount</code> is the human-readable balance (decimals applied). <code>raw_amount</code> is the on-chain integer.</p>
 
-      <div class="stat-grid" id="statGrid">
+      <div class="stat-grid">
         <div class="stat-box"><div class="stat-label">Selected holders</div><div class="stat-val" id="statCount">—</div></div>
-        <div class="stat-box"><div class="stat-label">Total raw supply</div><div class="stat-val" id="statSupply">—</div></div>
-        <div class="stat-box"><div class="stat-label">Snapshot block</div><div class="stat-val" id="statBlock">—</div></div>
+        <div class="stat-box"><div class="stat-label">Total supply (UI)</div><div class="stat-val" id="statSupply">—</div></div>
+        <div class="stat-box"><div class="stat-label">Decimals</div><div class="stat-val" id="statDecimals">—</div></div>
+        <div class="stat-box"><div class="stat-label">Snapshot slot</div><div class="stat-val" id="statBlock">—</div></div>
       </div>
 
       <div class="field" style="margin-top:1rem">
@@ -362,12 +347,10 @@
       <div class="row" style="margin-top:1.25rem">
         <button id="exportCsvBtn" class="button ok">⬇ Download CSV</button>
         <button id="exportJsonBtn" class="button sec">⬇ Download JSON</button>
-        <button id="copyBtn" class="button sec">📋 Copy CSV to clipboard</button>
+        <button id="copyBtn" class="button sec">📋 Copy CSV</button>
       </div>
 
       <div id="exportInfo" class="info" style="display:none;margin-top:.75rem"></div>
-
-      <p class="fine" style="margin-top:1rem">CSV format: <code>wallet,raw_amount,rank</code> &nbsp;·&nbsp; JSON format: array of <code>{wallet, raw_amount, rank}</code> objects. <code>raw_amount</code> is the unscaled integer from the chain — divide by 10^decimals for human-readable amounts.</p>
     </div>
 
     <pre id="log" class="log">Ready. Enter your Helius API key and a mint address to begin.</pre>
@@ -378,38 +361,40 @@
 (() => {
   const $ = id => document.getElementById(id);
 
-  const netSel       = $('netSel');
-  const apiKeyInput  = $('apiKeyInput');
-  const keyTip       = $('keyTip');
-  const statusBadge  = $('statusBadge');
-  const mintInput    = $('mintInput');
-  const loadBtn      = $('loadBtn');
-  const holdersChip  = $('holdersChip');
-  const holdersInfo  = $('holdersInfo');
-  const holdersList  = $('holdersList');
-  const stepFilter   = $('stepFilter');
-  const stepExport   = $('stepExport');
+  const netSel         = $('netSel');
+  const apiKeyInput    = $('apiKeyInput');
+  const keyTip         = $('keyTip');
+  const statusBadge    = $('statusBadge');
+  const mintInput      = $('mintInput');
+  const loadBtn        = $('loadBtn');
+  const holdersChip    = $('holdersChip');
+  const holdersInfo    = $('holdersInfo');
+  const holdersList    = $('holdersList');
+  const stepFilter     = $('stepFilter');
+  const stepExport     = $('stepExport');
   const applyFilterBtn = $('applyFilterBtn');
   const resetFilterBtn = $('resetFilterBtn');
-  const targetChip   = $('targetChip');
-  const pipeBar      = $('pipeBar');
-  const pipeCount    = $('pipeCount');
-  const pipeSteps    = $('pipeSteps');
-  const statCount    = $('statCount');
-  const statSupply   = $('statSupply');
-  const statBlock    = $('statBlock');
-  const exportCsvBtn = $('exportCsvBtn');
-  const exportJsonBtn= $('exportJsonBtn');
-  const copyBtn      = $('copyBtn');
-  const exportInfo   = $('exportInfo');
-  const logEl        = $('log');
+  const targetChip     = $('targetChip');
+  const pipeBar        = $('pipeBar');
+  const pipeCount      = $('pipeCount');
+  const pipeSteps      = $('pipeSteps');
+  const statCount      = $('statCount');
+  const statSupply     = $('statSupply');
+  const statDecimals   = $('statDecimals');
+  const statBlock      = $('statBlock');
+  const exportCsvBtn   = $('exportCsvBtn');
+  const exportJsonBtn  = $('exportJsonBtn');
+  const copyBtn        = $('copyBtn');
+  const exportInfo     = $('exportInfo');
+  const logEl          = $('log');
 
+  // allHolders stores { owner, rawAmount, uiAmount }
   let allHolders = [];
   let holders    = [];
+  let mintDecimals = 0;
   let lastBlock  = '—';
   let sortMode   = 'balDesc';
 
-  // ── Helpers ────────────────────────────────────────────────
   const net    = () => netSel.value;
   const apiKey = () => apiKeyInput.value.trim();
   const rpcUrl = () => {
@@ -421,7 +406,7 @@
   const sleep  = ms => new Promise(r => setTimeout(r, ms));
   const tog    = id => $(`tog-${id}`).checked;
   const val    = id => $(`f-${id}`).value;
-  const numVal = (id, def) => { const v = parseInt(val(id)); return isNaN(v) ? def : v; };
+  const numVal = (id, def) => { const v = parseFloat(val(id)); return isNaN(v) ? def : v; };
 
   function log(msg) {
     logEl.textContent += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
@@ -437,24 +422,52 @@
   // ── Persist API key ────────────────────────────────────────
   const SK = 'helius_api_key';
   if (localStorage.getItem(SK)) apiKeyInput.value = localStorage.getItem(SK);
-  apiKeyInput.addEventListener('input', () => {
-    localStorage.setItem(SK, apiKeyInput.value.trim());
-    updateStatus();
-  });
+  apiKeyInput.addEventListener('input', () => { localStorage.setItem(SK, apiKey()); updateStatus(); });
   netSel.addEventListener('change', updateStatus);
 
   function updateStatus() {
     const ok = !!apiKey();
-    statusBadge.textContent = ok ? '● Ready' : '⚠ Enter API key';
-    statusBadge.style.background = ok ? 'rgba(47,122,60,.1)' : 'rgba(178,59,59,.1)';
-    statusBadge.style.color      = ok ? 'var(--success)' : 'var(--danger)';
-    if (!ok) {
-      showInfo(keyTip, '🔑 Get a <strong>free</strong> Helius key at <a href="https://helius.dev" target="_blank">helius.dev</a>.', 'tip');
-    } else {
-      hideInfo(keyTip);
-    }
+    statusBadge.textContent       = ok ? '● Ready' : '⚠ Enter API key';
+    statusBadge.style.background  = ok ? 'rgba(47,122,60,.1)' : 'rgba(178,59,59,.1)';
+    statusBadge.style.color       = ok ? 'var(--success)' : 'var(--danger)';
+    if (!ok) showInfo(keyTip, '🔑 Get a <strong>free</strong> Helius key at <a href="https://helius.dev" target="_blank">helius.dev</a>.', 'tip');
+    else hideInfo(keyTip);
   }
   updateStatus();
+
+  // ── Decimals helper ────────────────────────────────────────
+  // Mint account layout: first 44 bytes header, byte 44 = decimals
+  async function fetchMintDecimals(mint) {
+    const ep = rpcUrl();
+    const res = await fetch(ep, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 'dec',
+        method: 'getAccountInfo',
+        params: [mint, { encoding: 'base64' }]
+      })
+    });
+    const json = await res.json();
+    if (json.error) throw new Error(json.error.message || 'getAccountInfo error');
+    const data = json.result?.value?.data;
+    if (!data || !data[0]) throw new Error('Could not fetch mint account data');
+    const bytes = Uint8Array.from(atob(data[0]), c => c.charCodeAt(0));
+    // SPL Mint layout: [44] = decimals
+    return bytes[44];
+  }
+
+  function toUI(rawAmount, decimals) {
+    if (decimals === 0) return rawAmount;
+    return rawAmount / Math.pow(10, decimals);
+  }
+
+  function fmtUI(uiAmount, decimals) {
+    return uiAmount.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: Math.min(decimals, 6)
+    });
+  }
 
   // ── Filter card toggles ────────────────────────────────────
   document.querySelectorAll('.ftoggle').forEach(t => {
@@ -465,7 +478,6 @@
     });
   });
 
-  // Sort buttons
   document.querySelectorAll('.sort-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('on'));
@@ -475,14 +487,11 @@
     });
   });
 
-  // Live preview on numeric inputs
   ['balMin','balMax','topPct','botPct','topN','botN','everyNth','randomN','cap'].forEach(id => {
-    const el = $(`f-${id}`);
-    if (el) el.addEventListener('input', livePreview);
+    const el = $(`f-${id}`); if (el) el.addEventListener('input', livePreview);
   });
   ['excludeList','includeList'].forEach(id => {
-    const el = $(`f-${id}`);
-    if (el) el.addEventListener('input', livePreview);
+    const el = $(`f-${id}`); if (el) el.addEventListener('input', livePreview);
   });
 
   // ── Crypto shuffle ─────────────────────────────────────────
@@ -496,97 +505,80 @@
     return a;
   }
 
-  // ── Filter pipeline ────────────────────────────────────────
+  // ── Filter pipeline (operates on uiAmount) ─────────────────
   function runPipeline() {
     if (!allHolders.length) return { result: [], steps: [] };
     let pool = [...allHolders];
     const steps = [];
 
-    // 1. Sort
     if (tog('sort')) {
-      if      (sortMode === 'balDesc') pool.sort((a, b) => b.amount - a.amount);
-      else if (sortMode === 'balAsc')  pool.sort((a, b) => a.amount - b.amount);
+      if      (sortMode === 'balDesc') pool.sort((a, b) => b.uiAmount - a.uiAmount);
+      else if (sortMode === 'balAsc')  pool.sort((a, b) => a.uiAmount - b.uiAmount);
       else if (sortMode === 'random')  pool = cryptoShuffle(pool);
       else if (sortMode === 'alpha')   pool.sort((a, b) => a.owner.localeCompare(b.owner));
       steps.push(`Sort: ${sortMode}`);
     }
 
-    // 2. Include-only whitelist
     if (tog('include')) {
-      const raw = val('includeList').split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
-      const set = new Set(raw);
+      const set = new Set(val('includeList').split(/[\n,]+/).map(s => s.trim()).filter(Boolean));
       if (set.size) { pool = pool.filter(h => set.has(h.owner)); steps.push(`Include only: ${set.size} addr`); }
     }
 
-    // 3. Balance range
     if (tog('balRange')) {
       const mn = numVal('balMin', 0);
       const mxRaw = val('balMax').trim();
-      const mx = mxRaw === '' ? Infinity : Math.max(mn, parseInt(mxRaw) || 0);
-      pool = pool.filter(h => h.amount >= mn && h.amount <= mx);
+      const mx = mxRaw === '' ? Infinity : Math.max(mn, parseFloat(mxRaw) || 0);
+      pool = pool.filter(h => h.uiAmount >= mn && h.uiAmount <= mx);
       steps.push(`Balance: ${mn}–${mx === Infinity ? '∞' : mx}`);
     }
 
-    // 4. Exclude list
     if (tog('exclude')) {
-      const raw = val('excludeList').split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
-      const set = new Set(raw);
+      const set = new Set(val('excludeList').split(/[\n,]+/).map(s => s.trim()).filter(Boolean));
       if (set.size) { pool = pool.filter(h => !set.has(h.owner)); steps.push(`Exclude: ${set.size} addr`); }
     }
 
-    // 5. Top %
     if (tog('topPct')) {
       const pct  = Math.min(100, Math.max(1, numVal('topPct', 10)));
       const keep = Math.max(1, Math.round(pool.length * pct / 100));
-      const sorted = [...pool].sort((a, b) => b.amount - a.amount);
-      const topSet = new Set(sorted.slice(0, keep).map(h => h.owner));
+      const topSet = new Set([...pool].sort((a,b) => b.uiAmount - a.uiAmount).slice(0, keep).map(h => h.owner));
       pool = pool.filter(h => topSet.has(h.owner));
       steps.push(`Top ${pct}%`);
     }
 
-    // 6. Bottom %
     if (tog('botPct')) {
       const pct  = Math.min(100, Math.max(1, numVal('botPct', 10)));
       const keep = Math.max(1, Math.round(pool.length * pct / 100));
-      const sorted = [...pool].sort((a, b) => a.amount - b.amount);
-      const botSet = new Set(sorted.slice(0, keep).map(h => h.owner));
+      const botSet = new Set([...pool].sort((a,b) => a.uiAmount - b.uiAmount).slice(0, keep).map(h => h.owner));
       pool = pool.filter(h => botSet.has(h.owner));
       steps.push(`Bottom ${pct}%`);
     }
 
-    // 7. Top N
     if (tog('topN')) {
       const n = Math.max(1, numVal('topN', 100));
-      const sorted = [...pool].sort((a, b) => b.amount - a.amount);
-      const topSet = new Set(sorted.slice(0, n).map(h => h.owner));
+      const topSet = new Set([...pool].sort((a,b) => b.uiAmount - a.uiAmount).slice(0, n).map(h => h.owner));
       pool = pool.filter(h => topSet.has(h.owner));
       steps.push(`Top ${n}`);
     }
 
-    // 8. Bottom N
     if (tog('botN')) {
       const n = Math.max(1, numVal('botN', 100));
-      const sorted = [...pool].sort((a, b) => a.amount - b.amount);
-      const botSet = new Set(sorted.slice(0, n).map(h => h.owner));
+      const botSet = new Set([...pool].sort((a,b) => a.uiAmount - b.uiAmount).slice(0, n).map(h => h.owner));
       pool = pool.filter(h => botSet.has(h.owner));
       steps.push(`Bottom ${n}`);
     }
 
-    // 9. Every Nth
     if (tog('everyNth')) {
       const n = Math.max(2, numVal('everyNth', 2));
       pool = pool.filter((_, i) => i % n === 0);
       steps.push(`Every ${n}th`);
     }
 
-    // 10. Random sample
     if (tog('random')) {
       const n = Math.max(1, numVal('randomN', 50));
       pool = cryptoShuffle(pool).slice(0, Math.min(n, pool.length));
       steps.push(`Random ${n}`);
     }
 
-    // 11. Hard cap (last)
     if (tog('cap')) {
       const n = Math.max(1, numVal('cap', 500));
       if (pool.length > n) { pool = pool.slice(0, n); steps.push(`Cap ${n}`); }
@@ -606,6 +598,13 @@
     targetChip.style.display = 'inline-flex';
   }
 
+  function renderHolderList(list) {
+    holdersList.style.display = 'block';
+    holdersList.textContent = list.slice(0, 30)
+      .map((h, i) => `${i + 1}. ${h.owner}  ${fmtUI(h.uiAmount, mintDecimals)} (raw: ${h.rawAmount})`)
+      .join('\n') + (list.length > 30 ? `\n… +${list.length - 30} more` : '');
+  }
+
   function applyFilter() {
     if (!allHolders.length) { log('Load holders first.'); return; }
     const { result, steps } = runPipeline();
@@ -617,9 +616,7 @@
     pipeSteps.innerHTML = (steps.length ? steps : ['All holders']).map(s => `<span class="pipe-step">${s}</span>`).join('→');
     targetChip.textContent = `${holders.length} selected`;
     targetChip.style.display = 'inline-flex';
-    holdersList.style.display = 'block';
-    holdersList.textContent = holders.slice(0, 30).map((h, i) => `${i + 1}. ${h.owner}  (${h.amount})`).join('\n')
-      + (holders.length > 30 ? `\n… +${holders.length - 30} more` : '');
+    renderHolderList(holders);
     updateExportStats();
   }
 
@@ -632,9 +629,7 @@
     pipeBar.style.display = 'none';
     targetChip.style.display = 'none';
     holders = [...allHolders];
-    holdersList.style.display = 'block';
-    holdersList.textContent = holders.slice(0, 30).map((h, i) => `${i + 1}. ${h.owner}  (${h.amount})`).join('\n')
-      + (holders.length > 30 ? `\n… +${holders.length - 30} more` : '');
+    renderHolderList(holders);
     log(`Filters reset — all ${holders.length} holders selected`);
     updateExportStats();
   }
@@ -646,9 +641,16 @@
   async function fetchAllHolders(mint) {
     const ep = rpcUrl();
     if (!ep) throw new Error('Enter your Helius API key first.');
+
+    // 1. Get decimals first
+    log('Fetching mint decimals…');
+    mintDecimals = await fetchMintDecimals(mint);
+    log(`Mint decimals: ${mintDecimals}`);
+
+    // 2. Paginate holders
     const PAGE = 1000;
     let page = 1;
-    const ownerMap = new Map();
+    const ownerMap = new Map(); // owner -> rawAmount (keep highest)
 
     while (true) {
       const res = await fetch(ep, {
@@ -667,31 +669,34 @@
       let added = 0;
       for (const a of accounts) {
         if (!a.owner) continue;
-        const amt = Number(a.amount ?? 0);
-        if (amt <= 0) continue;
-        if ((ownerMap.get(a.owner) ?? 0) < amt) ownerMap.set(a.owner, amt);
+        const raw = Number(a.amount ?? 0);
+        if (raw <= 0) continue;
+        if ((ownerMap.get(a.owner) ?? 0) < raw) ownerMap.set(a.owner, raw);
         added++;
       }
-      log(`Page ${page}: ${accounts.length} accounts, ${added} non-zero → ${ownerMap.size} unique owners so far`);
+      log(`Page ${page}: ${accounts.length} accounts, ${added} non-zero → ${ownerMap.size} unique owners`);
       if (accounts.length < PAGE) break;
       page++;
       await sleep(200);
     }
 
-    // Fetch current slot for snapshot metadata
+    // 3. Current slot
     try {
       const slotRes = await fetch(ep, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jsonrpc: '2.0', id: 'slot', method: 'getSlot', params: [] })
       });
-      const slotJson = await slotRes.json();
-      lastBlock = slotJson.result?.toString() ?? '—';
+      lastBlock = (await slotRes.json()).result?.toString() ?? '—';
     } catch (_) { lastBlock = '—'; }
 
+    // 4. Build result with both raw and UI amounts
     return [...ownerMap.entries()]
       .sort((a, b) => b[1] - a[1])
-      .map(([owner, amount]) => ({ owner, amount }));
+      .map(([owner, rawAmount]) => ({
+        owner,
+        rawAmount,
+        uiAmount: toUI(rawAmount, mintDecimals)
+      }));
   }
 
   async function loadHolders() {
@@ -707,32 +712,34 @@
     log(`Loading holders for mint: ${mint} …`);
     allHolders = await fetchAllHolders(mint);
     holders = [...allHolders];
-    log(`Done — ${allHolders.length} unique holder(s) found. Snapshot block: ${lastBlock}`);
-    if (holdersChip) {
-      holdersChip.style.display = 'inline-flex';
-      holdersChip.textContent = `${allHolders.length} holder${allHolders.length !== 1 ? 's' : ''}`;
-    }
+    log(`Done — ${allHolders.length} unique holder(s). Decimals: ${mintDecimals}. Slot: ${lastBlock}`);
     if (!allHolders.length) {
       showInfo(holdersInfo, 'No holders found for this mint. Check the address and network.', 'err');
       return;
     }
-    showInfo(holdersInfo, `<strong>${allHolders.length}</strong> unique holder${allHolders.length !== 1 ? 's' : ''} with non-zero balance — ready to filter &amp; export.`, 'ok');
+    holdersChip.style.display = 'inline-flex';
+    holdersChip.textContent = `${allHolders.length} holder${allHolders.length !== 1 ? 's' : ''}`;
+    showInfo(holdersInfo,
+      `<strong>${allHolders.length}</strong> unique holder${allHolders.length !== 1 ? 's' : ''} · decimals: <strong>${mintDecimals}</strong> · slot: ${lastBlock}`,
+      'ok');
     stepFilter.classList.add('on');
-    holdersList.style.display = 'block';
-    holdersList.textContent = allHolders.slice(0, 30).map((h, i) => `${i + 1}. ${h.owner}  (${h.amount})`).join('\n')
-      + (allHolders.length > 30 ? `\n… +${allHolders.length - 30} more` : '');
+    renderHolderList(allHolders);
     updateExportStats();
   }
 
-  // ── Export helpers ─────────────────────────────────────────
+  // ── Export ─────────────────────────────────────────────────
   function buildRows() {
-    return holders.map((h, i) => ({ wallet: h.owner, raw_amount: h.amount, rank: i + 1 }));
+    return holders.map((h, i) => ({
+      wallet:     h.owner,
+      ui_amount:  h.uiAmount,
+      raw_amount: h.rawAmount,
+      rank:       i + 1
+    }));
   }
 
   function buildCsv(rows) {
-    const header = 'wallet,raw_amount,rank';
-    const body   = rows.map(r => `${r.wallet},${r.raw_amount},${r.rank}`).join('\n');
-    return header + '\n' + body;
+    return 'wallet,ui_amount,raw_amount,rank\n'
+      + rows.map(r => `${r.wallet},${r.ui_amount},${r.raw_amount},${r.rank}`).join('\n');
   }
 
   function downloadBlob(content, filename, mime) {
@@ -747,44 +754,42 @@
     const label = $('snapshotLabel').value.trim().replace(/[^a-z0-9_-]/gi, '_');
     const date  = new Date().toISOString().slice(0, 10);
     const mint  = mintInput.value.trim().slice(0, 8);
-    const parts = ['snapshot', mint, date, label].filter(Boolean);
-    return parts.join('_') + '.' + ext;
+    return ['snapshot', mint, date, label].filter(Boolean).join('_') + '.' + ext;
   }
 
   function updateExportStats() {
-    const supply = holders.reduce((s, h) => s + h.amount, 0);
-    statCount.textContent  = holders.length.toLocaleString();
-    statSupply.textContent = supply.toLocaleString();
-    statBlock.textContent  = lastBlock;
+    const uiSupply = holders.reduce((s, h) => s + h.uiAmount, 0);
+    statCount.textContent    = holders.length.toLocaleString();
+    statSupply.textContent   = fmtUI(uiSupply, mintDecimals);
+    statDecimals.textContent = mintDecimals;
+    statBlock.textContent    = lastBlock;
     stepExport.classList.add('on');
   }
 
   exportCsvBtn.addEventListener('click', () => {
     if (!holders.length) { showInfo(exportInfo, 'No holders to export.', 'err'); return; }
     const csv = buildCsv(buildRows());
-    downloadBlob(csv, snapshotFilename('csv'), 'text/csv');
-    showInfo(exportInfo, `✓ Downloaded <strong>${snapshotFilename('csv')}</strong> with ${holders.length} rows.`, 'ok');
+    const fn  = snapshotFilename('csv');
+    downloadBlob(csv, fn, 'text/csv');
+    showInfo(exportInfo, `✓ Downloaded <strong>${fn}</strong> — ${holders.length} rows.`, 'ok');
     log(`CSV exported — ${holders.length} rows.`);
   });
 
   exportJsonBtn.addEventListener('click', () => {
     if (!holders.length) { showInfo(exportInfo, 'No holders to export.', 'err'); return; }
-    const json = JSON.stringify(buildRows(), null, 2);
-    downloadBlob(json, snapshotFilename('json'), 'application/json');
-    showInfo(exportInfo, `✓ Downloaded <strong>${snapshotFilename('json')}</strong> with ${holders.length} entries.`, 'ok');
+    const fn = snapshotFilename('json');
+    downloadBlob(JSON.stringify(buildRows(), null, 2), fn, 'application/json');
+    showInfo(exportInfo, `✓ Downloaded <strong>${fn}</strong> — ${holders.length} entries.`, 'ok');
     log(`JSON exported — ${holders.length} entries.`);
   });
 
   copyBtn.addEventListener('click', async () => {
     if (!holders.length) { showInfo(exportInfo, 'No holders to copy.', 'err'); return; }
-    const csv = buildCsv(buildRows());
     try {
-      await navigator.clipboard.writeText(csv);
+      await navigator.clipboard.writeText(buildCsv(buildRows()));
       showInfo(exportInfo, `✓ CSV copied to clipboard — ${holders.length} rows.`, 'ok');
       log('CSV copied to clipboard.');
-    } catch (e) {
-      showInfo(exportInfo, `Clipboard write failed: ${e.message}`, 'err');
-    }
+    } catch (e) { showInfo(exportInfo, `Clipboard error: ${e.message}`, 'err'); }
   });
 
   loadBtn.addEventListener('click', () =>
